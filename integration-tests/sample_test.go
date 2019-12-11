@@ -125,13 +125,13 @@ func Authenticate(identity Identity, userID string, pin int) error {
 	}
 
 	//Get V (used in /pass2) param using Y param from the pass1 response
-	exitCode = BN254CX.MPIN_CLIENT_2(X, hex2bytes(p1Response.Y), U)
+	exitCode = BN254CX.MPIN_CLIENT_2(X, hex2bytes(p1Response.Y), S)
 	if exitCode != 0 {
 		return newCryptoError(exitCode)
 	}
 
 	//rps/v2/pass2
-	p2Response, err := pass2(identity, U, qrURL.Fragment)
+	p2Response, err := pass2(identity, S, qrURL.Fragment)
 	if err != nil {
 		return err
 	}
