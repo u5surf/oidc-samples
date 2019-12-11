@@ -48,7 +48,7 @@ func Register(userID string, deviceName string, pin int) (identity Identity, err
 	const G1S = (BN254CX.MFS * 2) + 1 //https://github.com/miracl/core/blob/master/go/TestALL.go#L718
 
 	//authorize
-	authorizeResponse, err := authorize(userID, "l2tfcf23rxl3h", "http://localhost:8000/login", "", "openid")
+	authorizeResponse, err := authorize(userID, "6157wx51pm48u", "http://localhost:8000/login", "", "openid")
 	if err != nil {
 		return Identity{}, err
 	}
@@ -99,7 +99,7 @@ func Register(userID string, deviceName string, pin int) (identity Identity, err
 func Authenticate(identity Identity, userID string, pin int) error {
 	//we'll need data from this response (wid) for pass2 request
 	//otherwise, for some reason, if wid is not passed, the authOTT, that you'll need later is not stored in redis
-	authorizeResponse, err := authorize(userID, "l2tfcf23rxl3h", "http://localhost:8000/login", "", "openid")
+	authorizeResponse, err := authorize(userID, "6157wx51pm48u", "http://localhost:8000/login", "", "openid")
 	if err != nil {
 		return err
 	}
@@ -111,26 +111,27 @@ func Authenticate(identity Identity, userID string, pin int) error {
 	//Get pass1 proof from the token and pin (this is the U param in /pass1)
 	rand := core.NewRAND()
 	X := make([]byte, 32)
-	proof := make([]byte, 65)
-	exitCode := BN254CX.MPIN_CLIENT_1(BN254CX.HASH_TYPE, 0, identity.MPinID, rand, X, pin, identity.Token, proof, nil, nil, nil)
+	S := make([]byte, 65)
+	U := make([]byte, 65)
+	exitCode := BN254CX.MPIN_CLIENT_1(BN254CX.HASH_TYPE, 0, identity.MPinID, rand, X, pin, identity.Token, S, U, nil, nil)
 	if exitCode != 0 {
 		return newCryptoError(exitCode)
 	}
 
 	//rps/v2/pass1
-	p1Response, err := pass1(identity, proof, "oidc")
+	p1Response, err := pass1(identity, U, "oidc")
 	if exitCode != 0 {
 		return newCryptoError(exitCode)
 	}
 
 	//Get V (used in /pass2) param using Y param from the pass1 response
-	exitCode = BN254CX.MPIN_CLIENT_2(X, []byte(p1Response.Y), proof)
+	exitCode = BN254CX.MPIN_CLIENT_2(X, hex2bytes(p1Response.Y), U)
 	if exitCode != 0 {
 		return newCryptoError(exitCode)
 	}
 
 	//rps/v2/pass2
-	p2Response, err := pass2(identity, proof, qrURL.Fragment)
+	p2Response, err := pass2(identity, U, qrURL.Fragment)
 	if err != nil {
 		return err
 	}

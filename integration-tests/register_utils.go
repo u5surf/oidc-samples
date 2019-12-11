@@ -18,7 +18,7 @@ func authorize(userID string, clientID string, redirectURI string, nonce string,
 	}.Encode()
 
 	resp, err := Post(
-		"https://api.mpin.io/authorize"+"?"+query,
+		"http://api.playground/authorize"+"?"+query,
 		"POST",
 		nil,
 	)
@@ -40,11 +40,11 @@ func customVerify(userID string, deviceName string) (*CustomVerificationResponse
 		DeviceName: deviceName,
 	}
 
-	clientIdAndSecret := "l2tfcf23rxl3h:6lP2dBrlQHVngFGQzaDW7ghdrLUJOxaDC74E68H15gI"
+	clientIdAndSecret := "6157wx51pm48u:ri1mY6awx41J66Wbkg4KrkZTnRUE_TUTsZ-0zGTJZRQ"
 	authHeaderValue := "Basic " + b64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
 
 	resp, err := Post(
-		"https://api.mpin.io/activate/initiate",
+		"http://api.playground/activate/initiate",
 		"POST",
 		payload,
 		Header{Key: "Authorization", Value: authHeaderValue},
@@ -69,7 +69,7 @@ func register(userID string, deviceName string, wid string, activateCode string)
 		ActivateCode: activateCode,
 	}
 	resp, err := Post(
-		"https://api.mpin.io/rps/v2/user",
+		"http://api.playground/rps/v2/user",
 		"PUT",
 		payload,
 		Header{Key: "X-MIRACL-CID", Value: "mcl"},
@@ -88,7 +88,7 @@ func register(userID string, deviceName string, wid string, activateCode string)
 
 func signature(mpinID string, regOTT string) (*SignatureResponse, error) {
 	resp, err := Post(
-		fmt.Sprintf("https://api.mpin.io/rps/v2/signature/%v?regOTT=%v", mpinID, regOTT),
+		fmt.Sprintf("http://api.playground/rps/v2/signature/%v?regOTT=%v", mpinID, regOTT),
 		"GET",
 		nil,
 	)

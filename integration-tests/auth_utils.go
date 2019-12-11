@@ -15,7 +15,7 @@ func pass1(identity Identity, proof []byte, scope ...string) (p1Response *Pass1R
 	}
 
 	resp, err := Post(
-		"https://api.mpin.io/rps/v2/pass1",
+		"http://api.playground/rps/v2/pass1",
 		"POST",
 		payload,
 	)
@@ -39,7 +39,7 @@ func pass2(identity Identity, proof []byte, WID string) (p2Response *Pass2Respon
 	}
 
 	resp, err := Post(
-		"https://api.mpin.io/rps/v2/pass2",
+		"http://api.playground/rps/v2/pass2",
 		"POST",
 		payload,
 	)
@@ -61,7 +61,7 @@ func authenticate(authOTT string) (authResponse *AuthenticateResponse, err error
 	}
 
 	resp, err := Post(
-		"https://api.mpin.io/rps/v2/authenticate",
+		"http://api.playground/rps/v2/authenticate",
 		"POST",
 		payload,
 	)
