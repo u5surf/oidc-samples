@@ -1,0 +1,32 @@
+openapi: "3.0.2"
+info:
+  title: MIRACL Trust OIDC Integration Samples API
+  version: "1.0"
+paths:
+  /:
+    get:
+      responses:
+        "200":
+          description: Return the UserInfo if the user is authenticated.
+        "302":
+          description: Generate state and redirect to MIRACL Trust Login Page if user is not authenticated.
+  /login:
+    get:
+      parameters:
+        - name: state
+          in: query
+          description: state
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          description: code
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to the Index page if the authentication is successful.
+        "400":
+          description: Bad Request.
