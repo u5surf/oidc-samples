@@ -1,0 +1,58 @@
+name: Go-sample
+
+on:
+  push:
+    paths:
+      - "samples/go/**"
+
+env:
+  DOCKER_REGISTRY: docker.pkg.github.com
+  USER: ${{ secrets.USER }}
+  AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+  OWNER: miracl
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+
+      - name: Go lint
+        run: test -z "$(gofmt -s -l . 2>&1 | grep -v vendor | tee /dev/stderr)"
+
+      - name: Go build
+        run: |
+          cd samples/go
+          go build -v .
+
+  docker:
+    needs: go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Docker login, build & push
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest samples/go/
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest
+          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:$GITHUB_ACTION
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:$GITHUB_ACTION
+
+  tests:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker pull, run & test
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          docker pull $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest
+          CONTAINER_ID=$(docker run -d -p 8000:8000 --rm $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest)
+          sleep 5
+          curl localhost:8000/
+          docker container stop $CONTAINER_ID
