@@ -7,8 +7,9 @@ import (
 )
 
 func main() {
-	var addr, issuer, clientID, clientSecret, redirectURL string
-	flag.StringVar(&addr, "addr", ":8000", "Listen address")
+	var host, port, issuer, clientID, clientSecret, redirectURL string
+	flag.StringVar(&host, "host", "0.0.0.0", "Listen host")
+	flag.StringVar(&port, "port", "8000", "Listen port")
 	flag.StringVar(&issuer, "issuer", "https://api.mpin.io", "Backend url")
 	flag.StringVar(&clientID, "client-id", "", "OIDC Client Id")
 	flag.StringVar(&clientSecret, "client-secret", "", "OIDC Client Secret")
@@ -23,6 +24,7 @@ func main() {
 	http.HandleFunc("/", app.index)
 	http.HandleFunc("/login", app.login)
 
-	log.Printf("Server started. Listening on %v", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	address := host + ":" + port
+	log.Printf("Server started. Listening on %v", address)
+	log.Fatal(http.ListenAndServe(address, nil))
 }

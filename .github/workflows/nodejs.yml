@@ -1,0 +1,58 @@
+name: nodejs
+
+on:
+  push:
+    paths:
+      - "samples/nodejs/*"
+      - ".github/workflows/nodejs.yml"
+
+env:
+  DOCKER_REGISTRY: docker.pkg.github.com
+  USER: ${{ secrets.USER }}
+  AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+  OWNER: miracl
+
+jobs:
+  nodejs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+
+      - name: Run eslint
+        run: |
+          npm install --prefix samples/nodejs
+          npm run eslint:action --prefix samples/nodejs
+
+  docker:
+    needs: nodejs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Docker login, build & push
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest samples/nodejs/
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest
+          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:$GITHUB_ACTION
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:$GITHUB_ACTION
+
+  integration-tests:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker pull, run & test
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          docker pull $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest
+          CONTAINER_ID=$(docker run -d -p 8000:8000 --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest)
+          docker container stop $CONTAINER_ID

@@ -1,9 +1,10 @@
-name: Go-sample
+name: go
 
 on:
   push:
     paths:
       - "samples/go/**"
+      - ".github/workflows/go.yml"
 
 env:
   DOCKER_REGISTRY: docker.pkg.github.com
@@ -39,20 +40,22 @@ jobs:
       - name: Docker login, build & push
         run: |
           docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
-          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest samples/go/
-          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest
-          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:$GITHUB_ACTION
-          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:$GITHUB_ACTION
+          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/go:latest samples/go/
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/go:latest
+          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/go:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/go:$GITHUB_ACTION
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/go:$GITHUB_ACTION
 
-  tests:
+  integration-tests:
     needs: docker
     runs-on: ubuntu-latest
     steps:
       - name: Docker pull, run & test
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+
         run: |
           docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
-          docker pull $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest
-          CONTAINER_ID=$(docker run -d -p 8000:8000 --rm $DOCKER_REGISTRY/$OWNER/oidc-samples/sample-go:latest)
-          sleep 5
-          curl localhost:8000/
+          docker pull $DOCKER_REGISTRY/$OWNER/oidc-samples/go:latest
+          CONTAINER_ID=$(docker run -d -p 8000:8000 --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/go:latest)
           docker container stop $CONTAINER_ID
