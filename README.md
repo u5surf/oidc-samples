@@ -1,7 +1,7 @@
 # MIRACL Trust OIDC Integration Samples
 
-![](https://github.com/miracl/oidc-samples/workflows/go/badge.svg)
-![](https://github.com/miracl/oidc-samples/workflows/js/badge.svg)
+![go](https://github.com/miracl/oidc-samples/workflows/go/badge.svg)
+![nodejs](https://github.com/miracl/oidc-samples/workflows/nodejs/badge.svg)
 
 
 These samples provide example integrations between the [MIRACL Trust](https://miracl.com) platform and various OIDC libraries.
@@ -17,7 +17,7 @@ These samples provide example integrations between the [MIRACL Trust](https://mi
 
 
 The required env vars are `CLIENT_ID` and `CLIENT_SECRET`.
-To get those values, you'll need to [register and create an app in our platform](https://docs.miracl.cloud/get-started/). 
+To get those values, you'll need to [register and create an app in our platform](https://docs.miracl.cloud/get-started/).
 
 We recommend you to leave the `ISSUER` to the default value. This way you'll be using [https://trust.miracl.cloud](https://trust.miracl.cloud), the full docs of which you can find [here](https://docs.miracl.cloud/).
 

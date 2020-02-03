@@ -13,7 +13,7 @@ env:
   OWNER: miracl
 
 jobs:
-  nodejs:
+  lint-nodejs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -28,8 +28,8 @@ jobs:
           npm install --prefix samples/nodejs
           npm run eslint:action --prefix samples/nodejs
 
-  docker:
-    needs: nodejs
+  build-docker:
+    needs: lint-nodejs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -42,11 +42,11 @@ jobs:
           docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:$GITHUB_ACTION
           docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:$GITHUB_ACTION
 
-  integration-tests:
-    needs: docker
+  run-integration-tests:
+    needs: build-docker
     runs-on: ubuntu-latest
     steps:
-      - name: Docker pull, run & test
+      - name: Run integration tests
         env:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
@@ -54,5 +54,6 @@ jobs:
         run: |
           docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
           docker pull $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest
-          CONTAINER_ID=$(docker run -d -p 8000:8000 --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest)
-          docker container stop $CONTAINER_ID
+          SAMPLE_CONTAINER_ID=$(docker run -d -p 8000:8000 --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest)
+          docker run --network="host" --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest
+          docker container stop $SAMPLE_CONTAINER_ID

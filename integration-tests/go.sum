@@ -1,0 +1,12 @@
+code.miracl.com/mfa/pkg/crypto v4.12.3+incompatible h1:g9QEIuPErdhI4FMg731Oe5i7D4F7JVx4Pn9zHLe5s5g=
+code.miracl.com/mfa/pkg/crypto v4.12.3+incompatible/go.mod h1:9YPXWRBpJjlDL0XaiJUuye3dCjwx+8CQz3GaY9riGao=
+code.miracl.com/mfa/pkg/gomiracl v1.0.0 h1:xW2XSKArwOzymG2HVuXVHT5NXAjhbxzLZ2tVAkrWbK0=
+code.miracl.com/mfa/pkg/gomiracl v1.0.0/go.mod h1:nNkhKR1Kugix3HV3x/gU+Po57AK4XcsDGYpQvW2YmdI=
+github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
+github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/miracl/core v0.0.0-20191125185431-9251217dc393 h1:unfXPQ5QO/7V1MxAOEffuOYSqg7kDvJI7pUrr4E+aMI=
+github.com/miracl/core v0.0.0-20191125185431-9251217dc393/go.mod h1:AnjRmgynJxt4THL5je5wR4749hZ9eMNNmxt1A6om33A=
+github.com/miracl/oidc-samples v0.0.0-20191119132204-b82068e7dead h1:3N9iIiv5eT96ttNAPRmdhr58l9PlRZXtq/DS1nxtDw8=
+github.com/miracl/oidc-samples v0.0.0-20200122141857-336e481d0af5 h1:ZsfiKjl9/kTEdqNZNr8iHzsnxxvjZHEV5XOdAGSDDAY=
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
+github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

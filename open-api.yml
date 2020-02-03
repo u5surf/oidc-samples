@@ -21,7 +21,7 @@ paths:
             type: string
         - name: code
           in: query
-          description: code
+          description: state
           required: true
           schema:
             type: string

@@ -1,0 +1,41 @@
+name: integration-tests
+
+on:
+  push:
+    paths:
+      - "integration-tests/**"
+      - ".github/workflows/integration-tests.yml"
+
+env:
+  DOCKER_REGISTRY: docker.pkg.github.com
+  USER: ${{ secrets.USER }}
+  AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+  OWNER: miracl
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+
+      - name: Go lint
+        run: test -z "$(gofmt -s -l . 2>&1 | grep -v vendor | tee /dev/stderr)"
+
+  docker:
+    needs: go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Docker login, build & push
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest integration-tests/
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest
+          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:$GITHUB_ACTION
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:$GITHUB_ACTION
