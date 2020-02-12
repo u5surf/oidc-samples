@@ -7,16 +7,18 @@ import (
 )
 
 func main() {
-	var host, port, issuer, clientID, clientSecret, redirectURL string
+	var host, port, issuer, clientID, clientSecret, redirectURL, proxyHost, proxyPort string
 	flag.StringVar(&host, "host", "0.0.0.0", "Listen host")
 	flag.StringVar(&port, "port", "8000", "Listen port")
 	flag.StringVar(&issuer, "issuer", "https://api.mpin.io", "Backend url")
 	flag.StringVar(&clientID, "client-id", "", "OIDC Client Id")
 	flag.StringVar(&clientSecret, "client-secret", "", "OIDC Client Secret")
 	flag.StringVar(&redirectURL, "redirect-url", "http://localhost:8000/login", "Redirect URL")
+	flag.StringVar(&proxyHost, "proxy-host", "", "Sample's proxy HOST")
+	flag.StringVar(&proxyPort, "proxy-port", "", "Sample's proxy PORT")
 	flag.Parse()
 
-	app, err := newApp(issuer, clientID, clientSecret, redirectURL)
+	app, err := newApp(issuer, clientID, clientSecret, redirectURL, proxyHost, proxyPort)
 	if err != nil {
 		log.Fatal(err)
 	}

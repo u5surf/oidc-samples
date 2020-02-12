@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	oidc "github.com/coreos/go-oidc"
 	"golang.org/x/oauth2"
@@ -22,8 +23,22 @@ type app struct {
 	random func() string
 }
 
-func newApp(issuer, clientID, clientSecret, redirectURL string) (*app, error) {
-	provider, err := oidc.NewProvider(context.Background(), issuer)
+func newApp(issuer, clientID, clientSecret, redirectURL, proxyHost, proxyPort string) (*app, error) {
+	ctx := context.Background()
+
+	if proxyHost != "" && proxyPort != "" {
+		proxyUrl, err := url.Parse(fmt.Sprintf("http://%v:%v", proxyHost, proxyPort))
+		if err != nil {
+			return nil, err
+		}
+
+		http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+
+		myClient := &http.Client{}
+		ctx = oidc.ClientContext(context.Background(), myClient)
+	}
+
+	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
 		return nil, err
 	}

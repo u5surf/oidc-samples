@@ -1,8 +1,12 @@
 const express = require('express')
-const { Issuer } = require('openid-client')
+const fs = require('fs')
+const tunnel = require('tunnel')
+const { Issuer, custom } = require('openid-client')
 
 ;(async () => {
   const app = express()
+  const PROXY_HOST = process.env.PROXY_HOST
+  const PROXY_PORT = process.env.PROXY_PORT
   const HOST = process.env.HOST || '0.0.0.0'
   const PORT = process.env.PORT || 8000
   const ISSUER = process.env.ISSUER || 'https://api.mpin.io'
@@ -30,6 +34,20 @@ const { Issuer } = require('openid-client')
     redirect_uris: [REDIRECT_URL],
     response_types: ['code']
   })
+
+  if (PROXY_HOST && PROXY_PORT) {
+    client[custom.http_options] = function (options) {
+      var asdf = tunnel.httpsOverHttp({
+        ca: [fs.readFileSync('ca.crt')],
+        proxy: {
+          host: PROXY_HOST,
+          port: PROXY_PORT
+        }
+      })
+      options.agent = asdf
+      return options
+    }
+  }
 
   const authSessions = {}
 
