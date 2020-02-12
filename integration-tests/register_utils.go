@@ -10,22 +10,21 @@ import (
 	"code.miracl.com/mfa/pkg/gomiracl/wrap"
 )
 
-func Register(userID string, deviceName string, pin int, authorizeRequestURL string) (i identity, err error) {
-	// const G1S = (BN254CX.MFS * 2) + 1 //https://github.com/miracl/core/blob/master/go/TestALL.go#L718
+func register(userID string, deviceName string, pin int, authorizeRequestURL string) (i identity, err error) {
 
-	//authorize
+	// Call to /authorize endpoint.
 	authorizeResponse, err := authorizeRequest(authorizeRequestURL)
 	if err != nil {
 		return identity{}, err
 	}
 
-	//activate/initiate
+	// Call to /activate/initiate endpoint.
 	cvResponse, err := customVerifyRequest(userID, deviceName)
 	if err != nil {
 		return identity{}, err
 	}
 
-	//rps/v2/user
+	// Call to /rps/v2/user endpoint.
 	qrURL, err := url.Parse(authorizeResponse.QRURL)
 	if err != nil {
 		return identity{}, err
@@ -35,22 +34,22 @@ func Register(userID string, deviceName string, pin int, authorizeRequestURL str
 		return identity{}, err
 	}
 
-	//signature
+	// Call to /signature endpoint.
 	sigResponse, err := signatureRequest(regResponse.MPinID, regResponse.RegOTT)
 	if err != nil {
 		return identity{}, err
 	}
 
-	//dta/ID
+	// Call to /dta/ID endpoint.
 	csResponse, err := clientSecretRequest(sigResponse.CS2URL)
 
-	//Combine bot client secrets
+	// Combine both client secrets.
 	Q, err := wrap.RecombineG1BN254CX(hex2bytes(sigResponse.ClientSecretShare), hex2bytes(csResponse.ClientSecret))
 	if err != nil {
 		return identity{}, err
 	}
 
-	//First extract pin from the combine client secret, in order to get the token
+	// First extract pin from the combine client secret, in order to get the token.
 	CS, err := wrap.ExtractPINBN254CX(int(gomiracl.SHA256), hex2bytes(regResponse.MPinID), pin, Q)
 	if err != nil {
 		return identity{}, err
@@ -64,7 +63,7 @@ func Register(userID string, deviceName string, pin int, authorizeRequestURL str
 }
 
 func authorizeRequest(requestURL string) (*authorizeResponse, error) {
-	resp, err := Request(
+	resp, err := request(
 		requestURL,
 		"POST",
 		nil,
@@ -93,7 +92,7 @@ func customVerifyRequest(userID string, deviceName string) (*customVerificationR
 	clientIdAndSecret := options.clientID + ":" + options.clientSecret
 	authHeaderValue := "Basic " + b64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
 
-	resp, err := Request(
+	resp, err := request(
 		options.apiURL+"/activate/initiate",
 		"POST",
 		payload,
@@ -123,7 +122,7 @@ func registerRequest(userID string, deviceName string, wid string, activateCode 
 		WID:          wid,
 		ActivateCode: activateCode,
 	}
-	resp, err := Request(
+	resp, err := request(
 		options.apiURL+"/rps/v2/user",
 		"PUT",
 		payload,
@@ -142,7 +141,7 @@ func registerRequest(userID string, deviceName string, wid string, activateCode 
 }
 
 func signatureRequest(mpinID string, regOTT string) (*signatureResponse, error) {
-	resp, err := Request(
+	resp, err := request(
 		fmt.Sprintf(options.apiURL+"/rps/v2/signature/%v?regOTT=%v", mpinID, regOTT),
 		"GET",
 		nil,
@@ -160,7 +159,7 @@ func signatureRequest(mpinID string, regOTT string) (*signatureResponse, error) 
 }
 
 func clientSecretRequest(cs2url string) (*clientSecretResponse, error) {
-	resp, err := Request(
+	resp, err := request(
 		cs2url,
 		"GET",
 		nil,

@@ -13,29 +13,30 @@ func TestAuth(t *testing.T) {
 	userID := fmt.Sprintf("%v@example.com", name)
 	deviceName := "The device of " + name
 	pin := randPIN()
-	//all samples generate a new state and redirect us to an /authorize URL, if we're not logged in
-	authorizeRequestURL, err := Request(options.sampleURL, "GET", nil)
+
+	// All samples generate a new state and redirect us to an /authorize URL, if we're not logged in.
+	authorizeRequestURL, err := request(options.sampleURL, "GET", nil)
 	if err != nil {
 		t.Error("Error making initial request to the home page:", err)
 	}
 
-	identity, err := Register(userID, deviceName, pin, string(authorizeRequestURL))
+	identity, err := register(userID, deviceName, pin, string(authorizeRequestURL))
 	if err != nil {
 		t.Error("Error registering:", err)
 	}
 
-	accessResponse, err := Authenticate(identity, userID, pin, string(authorizeRequestURL))
+	accessResponse, err := authenticate(identity, userID, pin, string(authorizeRequestURL))
 	if err != nil {
 		t.Error("Error authenticating:", err)
 	}
 
-	//Contains an URL, from which we can fetch the user info
-	sessionURL, err := Request(accessResponse.RedirectURL, "GET", nil)
+	// Contains an URL, from which we can fetch the user info.
+	sessionURL, err := request(accessResponse.RedirectURL, "GET", nil)
 	if err != nil {
 		t.Error("Error logging in:", err)
 	}
 
-	userInfoResponse, err := Request(string(sessionURL), "GET", nil)
+	userInfoResponse, err := request(string(sessionURL), "GET", nil)
 	if err != nil {
 		t.Error("Error getting user info:", err)
 	}

@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func Request(url string, method string, payload interface{}, headers ...header) (responseBody []byte, err error) {
+func request(url string, method string, payload interface{}, headers ...header) (responseBody []byte, err error) {
 	var req *http.Request
 	if method == "GET" {
 		req, err = http.NewRequest(method, url, nil)
@@ -43,7 +43,7 @@ func Request(url string, method string, payload interface{}, headers ...header) 
 	}
 	defer resp.Body.Close()
 
-	//whenever we're redirected we take the Location and return it
+	// Whenever we're redirected we take the Location and return it.
 	if resp.StatusCode == 302 || resp.StatusCode == 301 {
 		redirectLocation, err := resp.Location()
 		if err != nil {
@@ -74,9 +74,4 @@ func hex2bytes(s string) []byte {
 func randPIN() int {
 	mathRand.Seed(time.Now().UnixNano())
 	return mathRand.Intn(9000) + 1000
-}
-
-// isNil returns true if the error is nil
-func isNil(err error) bool {
-	return err == nil
 }

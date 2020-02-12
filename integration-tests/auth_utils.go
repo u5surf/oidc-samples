@@ -11,15 +11,13 @@ import (
 	"code.miracl.com/mfa/pkg/gomiracl/wrap"
 )
 
-func Authenticate(identity identity, userID string, pin int, authorizeRequestURL string) (accessResponse *accessResponse, err error) {
-	//we'll need data from this response (wid) for pass2 request
-	//otherwise, for some reason, if wid is not passed, the authOTT, that you'll need later is not stored in redis
+func authenticate(identity identity, userID string, pin int, authorizeRequestURL string) (accessResponse *accessResponse, err error) {
 	authorizeResponse, err := authorizeRequest(authorizeRequestURL)
 	if err != nil {
 		return nil, err
 	}
 
-	//Get pass1 proof from the token and pin (this is the U param in /pass1)
+	// Get pass1 proof from the token and pin (this is the U param in /pass1).
 	rand := bindings.NewRand([]byte{})
 	X := make([]byte, 32)
 	proof := make([]byte, 65)
@@ -28,16 +26,16 @@ func Authenticate(identity identity, userID string, pin int, authorizeRequestURL
 		return nil, err
 	}
 
-	//rps/v2/pass1
+	// Call to /rps/v2/pass1 endpoint.
 	p1Response, err := pass1Request(identity, U, "oidc")
 
-	//Get V (used in /pass2) param using Y param from the pass1 response
+	// Get V (used in /pass2) param using Y param from the pass1 response.
 	V, err := wrap.Client2BN254CX(xR, hex2bytes(p1Response.Y), S)
 	if err != nil {
 		return nil, err
 	}
 
-	//rps/v2/pass2
+	// Call to /rps/v2/pass2 endpoint.
 	qrURL, err := url.Parse(authorizeResponse.QRURL)
 	if err != nil {
 		return nil, err
@@ -47,7 +45,7 @@ func Authenticate(identity identity, userID string, pin int, authorizeRequestURL
 		return nil, err
 	}
 
-	//rps/v2/authenticate
+	// Call to /rps/v2/authenticate endpoint.
 	authResponse, err := authenticateRequest(p2Response.AuthOTT)
 	if err != nil {
 		return nil, err
@@ -56,7 +54,7 @@ func Authenticate(identity identity, userID string, pin int, authorizeRequestURL
 		return nil, fmt.Errorf(authResponse.Message)
 	}
 
-	//rps/v2/access
+	// Call to /rps/v2/access endpoint.
 	accessResponse, err = accessRequest(authorizeResponse.WebOTT)
 	if err != nil {
 		return nil, err
@@ -78,7 +76,7 @@ func pass1Request(identity identity, proof []byte, scope ...string) (p1Response 
 		scope,
 	}
 
-	resp, err := Request(
+	resp, err := request(
 		options.apiURL+"/rps/v2/pass1",
 		"POST",
 		payload,
@@ -106,7 +104,7 @@ func pass2Request(identity identity, proof []byte, WID string) (p2Response *pass
 		hex.EncodeToString(identity.MPinID),
 	}
 
-	resp, err := Request(
+	resp, err := request(
 		options.apiURL+"/rps/v2/pass2",
 		"POST",
 		payload,
@@ -130,7 +128,7 @@ func authenticateRequest(authOTT string) (authResponse *authenticateResponse, er
 		authOTT,
 	}
 
-	resp, err := Request(
+	resp, err := request(
 		options.apiURL+"/rps/v2/authenticate",
 		"POST",
 		payload,
@@ -154,7 +152,7 @@ func accessRequest(webOTT string) (accessResponse *accessResponse, err error) {
 		webOTT,
 	}
 
-	resp, err := Request(
+	resp, err := request(
 		options.apiURL+"/rps/v2/access",
 		"POST",
 		payload,
