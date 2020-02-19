@@ -1,3 +1,3 @@
-# MIRACL Trust Node.js OIDC Integration Samples
+# MIRACL Trust Node.js OIDC Integration Sample
 
-This is an example integration with the [openid-client library](https://www.npmjs.com/package/openid-client).
+This example integrates the [openid-client library](https://www with the MIRACL Trust platform.
