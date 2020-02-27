@@ -9,10 +9,10 @@ RUN cd /src \
 
 FROM alpine
 
-RUN apk add --no-cache ca-certificates && update-ca-certificates
-
 COPY --from=proxy /src/ca.crt /usr/local/share/ca-certificates/ca.pem
 COPY --from=builder /bin/sample /bin/sample
 COPY --from=builder /src/entrypoint.sh /bin/entrypoint.sh
+
+RUN apk add --no-cache ca-certificates && update-ca-certificates
 
 ENTRYPOINT entrypoint.sh
