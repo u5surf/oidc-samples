@@ -79,6 +79,7 @@ jobs:
             --env PROXY_PORT=8080 \
             --network host \
             $DOCKER_REGISTRY/$OWNER/oidc-samples/go:latest
+          sleep 10
           docker run \
             --network="host" \
             --env CLIENT_ID \
