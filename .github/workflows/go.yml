@@ -71,6 +71,12 @@ jobs:
             --detach \
             --publish 8080:8080 \
             $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest
+
+          until $(curl --output /dev/null --silent --head http://127.0.0.1:8080); do
+            printf '.'
+            sleep 1
+          done
+
           docker run \
             --detach \
             --env CLIENT_ID \
@@ -80,7 +86,7 @@ jobs:
             --network host \
             $DOCKER_REGISTRY/$OWNER/oidc-samples/go:latest
 
-          until $(curl --output /dev/null --silent --head http://127.0.0.1:8080); do
+          until $(curl --output /dev/null --silent --head http://127.0.0.1:8000); do
             printf '.'
             sleep 1
           done
