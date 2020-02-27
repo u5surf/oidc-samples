@@ -73,7 +73,7 @@ jobs:
             $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest
 
           until $(curl --output /dev/null --silent --head http://127.0.0.1:8080); do
-            printf '.'
+            printf '#'
             sleep 1
           done
 
