@@ -1,3 +1,3 @@
-# MIRACL Trust Go OIDC Integration Samples
+# MIRACL Trust Go OIDC Integration Sample
 
-This is an example integration with the [go-oidc library](https://github.com/coreos/go-oidc).
+This example integrates the [go-oidc library](https://github.com/coreos/go-oidc) with the MIRACL Trust platform.

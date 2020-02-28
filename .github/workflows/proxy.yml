@@ -1,0 +1,41 @@
+name: proxy
+
+on:
+  push:
+    paths:
+      - "proxy/**"
+      - ".github/workflows/proxy.yml"
+
+env:
+  DOCKER_REGISTRY: docker.pkg.github.com
+  USER: ${{ secrets.USER }}
+  AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+  OWNER: miracl
+
+jobs:
+  lint-go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+
+      - name: Go lint
+        run: test -z "$(gofmt -s -l . 2>&1 | grep -v vendor | tee /dev/stderr)"
+
+  build-docker:
+    needs: lint-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Docker login, build & push
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest proxy/
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest
+          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:$GITHUB_ACTION
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:$GITHUB_ACTION

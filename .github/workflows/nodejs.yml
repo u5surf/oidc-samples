@@ -57,3 +57,20 @@ jobs:
           SAMPLE_CONTAINER_ID=$(docker run -d -p 8000:8000 --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest)
           docker run --network="host" --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest
           docker container stop $SAMPLE_CONTAINER_ID
+
+  run-no-mitm-integration-tests:
+    needs: build-docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run integration tests through proxy, without MITM
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          PROXY_CONTAINER_ID=$(docker run -d -p 8080:8080 --rm $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest)
+          SAMPLE_CONTAINER_ID=$(docker run --network host -d --rm -e CLIENT_ID -e CLIENT_SECRET -e PROXY_HOST=127.0.0.1 -e PROXY_PORT=8080 $DOCKER_REGISTRY/$OWNER/oidc-samples/nodejs:latest)
+          docker run --network="host" --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest
+          docker container stop $SAMPLE_CONTAINER_ID
+          docker container stop $PROXY_CONTAINER_ID
