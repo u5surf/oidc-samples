@@ -10,7 +10,7 @@ env:
   DOCKER_REGISTRY: docker.pkg.github.com
   USER: ${{ secrets.USER }}
   AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
-  OWNER: miracl
+  PROXY_IMAGE: docker.pkg.github.com/miracl/oidc-samples/proxy
 
 jobs:
   lint-go:
@@ -35,7 +35,7 @@ jobs:
       - name: Docker login, build & push
         run: |
           docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
-          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest proxy/
-          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest
-          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:$GITHUB_ACTION
-          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/proxy:$GITHUB_ACTION
+          docker build --tag $PROXY_IMAGE:latest proxy/
+          docker push $PROXY_IMAGE:latest
+          docker tag $PROXY_IMAGE:latest $PROXY_IMAGE:$GITHUB_SHA
+          docker push $PROXY_IMAGE:$GITHUB_SHA

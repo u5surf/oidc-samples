@@ -10,7 +10,7 @@ env:
   DOCKER_REGISTRY: docker.pkg.github.com
   USER: ${{ secrets.USER }}
   AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
-  OWNER: miracl
+  INT_TESTS_IMAGE: docker.pkg.github.com/miracl/oidc-samples/integration-tests
 
 jobs:
   go:
@@ -35,7 +35,7 @@ jobs:
       - name: Docker login, build & push
         run: |
           docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
-          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest integration-tests/
-          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest
-          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:$GITHUB_ACTION
-          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:$GITHUB_ACTION
+          docker build --tag $INT_TESTS_IMAGE:latest integration-tests/
+          docker push $INT_TESTS_IMAGE:latest
+          docker tag $INT_TESTS_IMAGE:latest $INT_TESTS_IMAGE:$GITHUB_SHA
+          docker push $INT_TESTS_IMAGE:$GITHUB_SHA

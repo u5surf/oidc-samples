@@ -1,4 +1,4 @@
-COMMAND="./proxy"
+COMMAND="proxy"
 
 if [ -n "$VERBOSE" ]; then COMMAND="${COMMAND} -v"; fi
 if [ -n "$HOST" ]; then COMMAND="${COMMAND} --host=${HOST}"; fi

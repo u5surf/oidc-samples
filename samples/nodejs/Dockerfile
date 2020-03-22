@@ -1,7 +1,13 @@
+FROM docker.pkg.github.com/miracl/oidc-samples/proxy:latest as proxy
+
+
 FROM node:alpine
-WORKDIR /src
-COPY . .
 
-RUN npm install
+COPY . /src
 
-ENTRYPOINT ["node", "index.js"]
+ENV CA_CERT /src/ca.crt
+COPY --from=proxy /src/ca.crt $CA_CERT
+
+RUN cd /src && npm install
+
+ENTRYPOINT ["node", "src/index.js"]

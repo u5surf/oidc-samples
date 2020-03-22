@@ -17,36 +17,36 @@ func TestAuth(t *testing.T) {
 	// All samples generate a new state and redirect us to an /authorize URL, if we're not logged in.
 	authorizeRequestURL, err := request(options.sampleURL, "GET", nil)
 	if err != nil {
-		t.Error("Error making initial request to the home page:", err)
+		t.Fatal("Error making initial request to the home page:", err)
 	}
 
 	identity, err := register(userID, deviceName, pin, string(authorizeRequestURL))
 	if err != nil {
-		t.Error("Error registering:", err)
+		t.Fatal("Error registering:", err)
 	}
 
 	accessResponse, err := authenticate(identity, userID, pin, string(authorizeRequestURL))
 	if err != nil {
-		t.Error("Error authenticating:", err)
+		t.Fatal("Error authenticating:", err)
 	}
 
 	// Contains an URL, from which we can fetch the user info.
 	sessionURL, err := request(accessResponse.RedirectURL, "GET", nil)
 	if err != nil {
-		t.Error("Error logging in:", err)
+		t.Fatal("Error logging in:", err)
 	}
 
 	userInfoResponse, err := request(string(sessionURL), "GET", nil)
 	if err != nil {
-		t.Error("Error getting user info:", err)
+		t.Fatal("Error getting user info:", err)
 	}
 
 	var userInfo userInfo
 	if err = json.Unmarshal(userInfoResponse, &userInfo); err != nil {
-		t.Error("Failed to unmarshal user info")
+		t.Fatal("Failed to unmarshal user info")
 	}
 
 	if userInfo.Email != userID {
-		t.Error("UserID  mismatch")
+		t.Fatal("UserID  mismatch")
 	}
 }

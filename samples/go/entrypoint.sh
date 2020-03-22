@@ -1,4 +1,4 @@
-COMMAND="./sample --client-id=${CLIENT_ID} --client-secret=${CLIENT_SECRET}"
+COMMAND="sample --client-id=${CLIENT_ID} --client-secret=${CLIENT_SECRET}"
 
 if [ -n "$PROXY_HOST" ]; then COMMAND="${COMMAND} --proxy-host=${PROXY_HOST}"; fi
 if [ -n "$PROXY_PORT" ]; then COMMAND="${COMMAND} --proxy-port=${PROXY_PORT}"; fi

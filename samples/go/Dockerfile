@@ -1,14 +1,18 @@
-FROM golang:alpine
-WORKDIR /src
-COPY . .
+FROM docker.pkg.github.com/miracl/oidc-samples/proxy:latest as proxy
 
-RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
 
-COPY ./ca.crt /usr/local/share/ca-certificates/ca.pem
+FROM golang:alpine as builder
+COPY . /src
+RUN cd /src \
+    && go build -o /bin/sample .
 
-RUN update-ca-certificates
 
-RUN go build -o sample .
-RUN chmod +x ./entrypoint.sh
+FROM alpine
 
-ENTRYPOINT ./entrypoint.sh
+COPY --from=proxy /src/ca.crt /usr/local/share/ca-certificates/ca.pem
+COPY --from=builder /bin/sample /bin/sample
+COPY --from=builder /src/entrypoint.sh /bin/entrypoint.sh
+
+RUN apk add --no-cache ca-certificates && update-ca-certificates
+
+ENTRYPOINT entrypoint.sh
