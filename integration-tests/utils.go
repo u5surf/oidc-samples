@@ -10,8 +10,7 @@ import (
 	"time"
 )
 
-func request(url string, method string, payload interface{}, headers ...header) (responseBody []byte, err error) {
-	var req *http.Request
+func newRequest(url string, method string, payload interface{}, headers ...header) (req *http.Request, err error) {
 	if method == "GET" {
 		req, err = http.NewRequest(method, url, nil)
 	} else {
@@ -30,16 +29,13 @@ func request(url string, method string, payload interface{}, headers ...header) 
 	for _, h := range headers {
 		req.Header.Add(h.Key, h.Value)
 	}
+	return req, err
+}
 
-	c := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-
-	resp, err := c.Do(req)
+func getResponse(req *http.Request, httpClient *http.Client) (responseBody []byte, cookies []*http.Cookie, err error) {
+	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
@@ -47,17 +43,27 @@ func request(url string, method string, payload interface{}, headers ...header) 
 	if resp.StatusCode == 302 || resp.StatusCode == 301 {
 		redirectLocation, err := resp.Location()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return []byte(redirectLocation.String()), nil
+		return []byte(redirectLocation.String()), resp.Cookies(), nil
 	}
 
 	responseBody, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
+		return nil, nil, err
+	}
+
+	return responseBody, resp.Cookies(), nil
+}
+
+func makeRequest(httpClient *http.Client, url string, method string, payload interface{}, headers ...header) (responseBody []byte, err error) {
+	req, err := newRequest(url, method, payload, headers...)
+	if err != nil {
 		return nil, err
 	}
 
-	return responseBody, nil
+	res, _, err := getResponse(req, httpClient)
+	return res, err
 }
 
 func hex2bytes(s string) []byte {

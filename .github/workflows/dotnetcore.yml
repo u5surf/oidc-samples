@@ -1,0 +1,57 @@
+name: dotnetcore
+
+on:
+  push:
+    paths:
+      - "samples/dotnetcore/**"
+      - ".github/workflows/dotnetcore.yml"
+
+env:
+  DOCKER_REGISTRY: docker.pkg.github.com
+  USER: ${{ secrets.USER }}
+  AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+  OWNER: miracl
+
+jobs:
+  lint-dotnetcore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set up DotNetCore 3.1
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: "3.1.100" # SDK Version to use.
+
+      - name: DotNetCore lint
+        run: dotnet build samples/dotnetcore/OidcSample.csproj
+
+  build-docker:
+    needs: lint-dotnetcore
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Docker login, build & push
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest samples/dotnetcore/
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest
+          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:$GITHUB_ACTION
+          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:$GITHUB_ACTION
+
+  run-integration-tests:
+    needs: build-docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run integration tests
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+
+        run: |
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+          docker pull $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest
+          SAMPLE_CONTAINER_ID=$(docker run -d -p 8000:8000 --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest)
+          docker run --network="host" --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest
+          docker container stop $SAMPLE_CONTAINER_ID

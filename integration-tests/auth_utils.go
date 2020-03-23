@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"code.miracl.com/mfa/pkg/gomiracl"
@@ -11,8 +12,8 @@ import (
 	"code.miracl.com/mfa/pkg/gomiracl/wrap"
 )
 
-func authenticate(identity identity, userID string, pin int, authorizeRequestURL string) (accessResponse *accessResponse, err error) {
-	authorizeResponse, err := authorizeRequest(authorizeRequestURL)
+func authenticate(httpClient *http.Client, identity identity, userID string, pin int, authorizeRequestURL string) (accessResponse *accessResponse, err error) {
+	authorizeResponse, err := authorizeRequest(httpClient, authorizeRequestURL)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func authenticate(identity identity, userID string, pin int, authorizeRequestURL
 	}
 
 	// Call to /rps/v2/pass1 endpoint.
-	p1Response, err := pass1Request(identity, U, "oidc")
+	p1Response, err := pass1Request(httpClient, identity, U, "oidc")
 
 	// Get V (used in /pass2) param using Y param from the pass1 response.
 	V, err := wrap.Client2BN254CX(xR, hex2bytes(p1Response.Y), S)
@@ -40,13 +41,13 @@ func authenticate(identity identity, userID string, pin int, authorizeRequestURL
 	if err != nil {
 		return nil, err
 	}
-	p2Response, err := pass2Request(identity, V, qrURL.Fragment)
+	p2Response, err := pass2Request(httpClient, identity, V, qrURL.Fragment)
 	if err != nil {
 		return nil, err
 	}
 
 	// Call to /rps/v2/authenticate endpoint.
-	authResponse, err := authenticateRequest(p2Response.AuthOTT)
+	authResponse, err := authenticateRequest(httpClient, p2Response.AuthOTT)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func authenticate(identity identity, userID string, pin int, authorizeRequestURL
 	}
 
 	// Call to /rps/v2/access endpoint.
-	accessResponse, err = accessRequest(authorizeResponse.WebOTT)
+	accessResponse, err = accessRequest(httpClient, authorizeResponse.WebOTT)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func authenticate(identity identity, userID string, pin int, authorizeRequestURL
 	return accessResponse, nil
 }
 
-func pass1Request(identity identity, proof []byte, scope ...string) (p1Response *pass1Response, err error) {
+func pass1Request(httpClient *http.Client, identity identity, proof []byte, scope ...string) (p1Response *pass1Response, err error) {
 	payload := struct {
 		U      string   `json:"U"`
 		MPinID string   `json:"mpin_id"`
@@ -76,7 +77,8 @@ func pass1Request(identity identity, proof []byte, scope ...string) (p1Response 
 		scope,
 	}
 
-	resp, err := request(
+	resp, err := makeRequest(
+		httpClient,
 		options.apiURL+"/rps/v2/pass1",
 		"POST",
 		payload,
@@ -93,7 +95,7 @@ func pass1Request(identity identity, proof []byte, scope ...string) (p1Response 
 	return p1Response, nil
 }
 
-func pass2Request(identity identity, proof []byte, WID string) (p2Response *pass2Response, err error) {
+func pass2Request(httpClient *http.Client, identity identity, proof []byte, WID string) (p2Response *pass2Response, err error) {
 	payload := struct {
 		V      string `json:"V"`
 		WID    string `json:"WID"`
@@ -104,7 +106,8 @@ func pass2Request(identity identity, proof []byte, WID string) (p2Response *pass
 		hex.EncodeToString(identity.MPinID),
 	}
 
-	resp, err := request(
+	resp, err := makeRequest(
+		httpClient,
 		options.apiURL+"/rps/v2/pass2",
 		"POST",
 		payload,
@@ -121,14 +124,15 @@ func pass2Request(identity identity, proof []byte, WID string) (p2Response *pass
 	return p2Response, nil
 }
 
-func authenticateRequest(authOTT string) (authResponse *authenticateResponse, err error) {
+func authenticateRequest(httpClient *http.Client, authOTT string) (authResponse *authenticateResponse, err error) {
 	payload := struct {
 		AuthOTT string `json:"authOTT"`
 	}{
 		authOTT,
 	}
 
-	resp, err := request(
+	resp, err := makeRequest(
+		httpClient,
 		options.apiURL+"/rps/v2/authenticate",
 		"POST",
 		payload,
@@ -145,14 +149,15 @@ func authenticateRequest(authOTT string) (authResponse *authenticateResponse, er
 	return authResponse, nil
 }
 
-func accessRequest(webOTT string) (accessResponse *accessResponse, err error) {
+func accessRequest(httpClient *http.Client, webOTT string) (accessResponse *accessResponse, err error) {
 	payload := struct {
 		WebOTT string `json:"webOTT"`
 	}{
 		webOTT,
 	}
 
-	resp, err := request(
+	resp, err := makeRequest(
+		httpClient,
 		options.apiURL+"/rps/v2/access",
 		"POST",
 		payload,

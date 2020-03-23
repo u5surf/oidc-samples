@@ -3,23 +3,25 @@ package main
 import (
 	b64 "encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"code.miracl.com/mfa/pkg/gomiracl"
 	"code.miracl.com/mfa/pkg/gomiracl/wrap"
 )
 
-func register(userID string, deviceName string, pin int, authorizeRequestURL string) (i identity, err error) {
+func register(httpClient *http.Client, userID string, deviceName string, pin int, authorizeRequestURL string) (i identity, err error) {
 
 	// Call to /authorize endpoint.
-	authorizeResponse, err := authorizeRequest(authorizeRequestURL)
+	authorizeResponse, err := authorizeRequest(httpClient, authorizeRequestURL)
 	if err != nil {
 		return identity{}, err
 	}
 
 	// Call to /activate/initiate endpoint.
-	cvResponse, err := customVerifyRequest(userID, deviceName)
+	cvResponse, err := customVerifyRequest(httpClient, userID, deviceName)
 	if err != nil {
 		return identity{}, err
 	}
@@ -29,19 +31,19 @@ func register(userID string, deviceName string, pin int, authorizeRequestURL str
 	if err != nil {
 		return identity{}, err
 	}
-	regResponse, err := registerRequest(userID, deviceName, qrURL.Fragment, cvResponse.ActivateToken)
+	regResponse, err := registerRequest(httpClient, userID, deviceName, qrURL.Fragment, cvResponse.ActivateToken)
 	if err != nil {
 		return identity{}, err
 	}
 
 	// Call to /signature endpoint.
-	sigResponse, err := signatureRequest(regResponse.MPinID, regResponse.RegOTT)
+	sigResponse, err := signatureRequest(httpClient, regResponse.MPinID, regResponse.RegOTT)
 	if err != nil {
 		return identity{}, err
 	}
 
 	// Call to /dta/ID endpoint.
-	csResponse, err := clientSecretRequest(sigResponse.CS2URL)
+	csResponse, err := clientSecretRequest(httpClient, sigResponse.CS2URL)
 
 	// Combine both client secrets.
 	Q, err := wrap.RecombineG1BN254CX(hex2bytes(sigResponse.ClientSecretShare), hex2bytes(csResponse.ClientSecret))
@@ -62,8 +64,9 @@ func register(userID string, deviceName string, pin int, authorizeRequestURL str
 	}, nil
 }
 
-func authorizeRequest(requestURL string) (*authorizeResponse, error) {
-	resp, err := request(
+func authorizeRequest(httpClient *http.Client, requestURL string) (*authorizeResponse, error) {
+	resp, err := makeRequest(
+		httpClient,
 		requestURL,
 		"POST",
 		nil,
@@ -80,7 +83,7 @@ func authorizeRequest(requestURL string) (*authorizeResponse, error) {
 	return authorizeResponse, nil
 }
 
-func customVerifyRequest(userID string, deviceName string) (*customVerificationResponse, error) {
+func customVerifyRequest(httpClient *http.Client, userID string, deviceName string) (*customVerificationResponse, error) {
 	payload := struct {
 		UserID     string `json:"userId"`
 		DeviceName string `json:"deviceName"`
@@ -92,7 +95,8 @@ func customVerifyRequest(userID string, deviceName string) (*customVerificationR
 	clientIdAndSecret := options.clientID + ":" + options.clientSecret
 	authHeaderValue := "Basic " + b64.StdEncoding.EncodeToString([]byte(clientIdAndSecret))
 
-	resp, err := request(
+	resp, err := makeRequest(
+		httpClient,
 		options.apiURL+"/activate/initiate",
 		"POST",
 		payload,
@@ -110,7 +114,7 @@ func customVerifyRequest(userID string, deviceName string) (*customVerificationR
 	return customVerificationResponse, nil
 }
 
-func registerRequest(userID string, deviceName string, wid string, activateCode string) (*registerResponse, error) {
+func registerRequest(httpClient *http.Client, userID string, deviceName string, wid string, activateCode string) (*registerResponse, error) {
 	payload := struct {
 		DeviceName   string `json:"deviceName"`
 		UserID       string `json:"userId"`
@@ -122,7 +126,8 @@ func registerRequest(userID string, deviceName string, wid string, activateCode 
 		WID:          wid,
 		ActivateCode: activateCode,
 	}
-	resp, err := request(
+	resp, err := makeRequest(
+		httpClient,
 		options.apiURL+"/rps/v2/user",
 		"PUT",
 		payload,
@@ -140,8 +145,9 @@ func registerRequest(userID string, deviceName string, wid string, activateCode 
 	return registerResponse, nil
 }
 
-func signatureRequest(mpinID string, regOTT string) (*signatureResponse, error) {
-	resp, err := request(
+func signatureRequest(httpClient *http.Client, mpinID string, regOTT string) (*signatureResponse, error) {
+	resp, err := makeRequest(
+		httpClient,
 		fmt.Sprintf(options.apiURL+"/rps/v2/signature/%v?regOTT=%v", mpinID, regOTT),
 		"GET",
 		nil,
@@ -155,11 +161,17 @@ func signatureRequest(mpinID string, regOTT string) (*signatureResponse, error) 
 		return nil, err
 	}
 
+	if !(sigResponse.CS2URL != "" && sigResponse.ClientSecretShare != "" &&
+		sigResponse.Curve != "" && sigResponse.DTAs != "") {
+		return nil, errors.New("Invalid signature response")
+	}
+
 	return sigResponse, nil
 }
 
-func clientSecretRequest(cs2url string) (*clientSecretResponse, error) {
-	resp, err := request(
+func clientSecretRequest(httpClient *http.Client, cs2url string) (*clientSecretResponse, error) {
+	resp, err := makeRequest(
+		httpClient,
 		cs2url,
 		"GET",
 		nil,
