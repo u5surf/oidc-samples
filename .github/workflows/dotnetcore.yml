@@ -7,10 +7,16 @@ on:
       - ".github/workflows/dotnetcore.yml"
 
 env:
-  DOCKER_REGISTRY: docker.pkg.github.com
+  # DOCKER_REGISTRY: docker.pkg.github.com
+  # USER: ${{ secrets.USER }}
+  # AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+  # OWNER: miracl
   USER: ${{ secrets.USER }}
   AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
-  OWNER: miracl
+  DOCKER_REGISTRY: docker.pkg.github.com
+  SAMPLE_IMAGE: docker.pkg.github.com/miracl/oidc-samples/dotnetcore
+  PROXY_IMAGE_LATEST: docker.pkg.github.com/miracl/oidc-samples/proxy:latest
+  INT_TESTS_IMAGE_LATEST: docker.pkg.github.com/miracl/oidc-samples/integration-tests:latest
 
 jobs:
   lint-dotnetcore:
@@ -35,10 +41,26 @@ jobs:
       - name: Docker login, build & push
         run: |
           docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
-          docker build --tag $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest samples/dotnetcore/
-          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest
-          docker tag $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:$GITHUB_ACTION
-          docker push $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:$GITHUB_ACTION
+          docker build --tag $SAMPLE_IMAGE:latest samples/dotnetcore/
+          docker push $SAMPLE_IMAGE:latest
+          docker tag $SAMPLE_IMAGE:latest $SAMPLE_IMAGE:$GITHUB_SHA
+          docker push $SAMPLE_IMAGE:$GITHUB_SHA
+
+  # run-integration-tests:
+  #   needs: build-docker
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Run integration tests
+  #       env:
+  #         CLIENT_ID: ${{ secrets.CLIENT_ID }}
+  #         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+
+  #       run: |
+  #         docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+  #         docker pull $SAMPLE_IMAGE:latest
+  #         SAMPLE_CONTAINER_ID=$(docker run -d -p 8000:8000 --rm -e CLIENT_ID -e CLIENT_SECRET $SAMPLE_IMAGE:latest)
+  #         docker run --network="host" --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest
+  #         docker container stop $SAMPLE_CONTAINER_ID
 
   run-integration-tests:
     needs: build-docker
@@ -49,9 +71,52 @@ jobs:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
 
-        run: |
+        run: >
           docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
-          docker pull $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest
-          SAMPLE_CONTAINER_ID=$(docker run -d -p 8000:8000 --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/dotnetcore:latest)
-          docker run --network="host" --rm -e CLIENT_ID -e CLIENT_SECRET $DOCKER_REGISTRY/$OWNER/oidc-samples/integration-tests:latest
-          docker container stop $SAMPLE_CONTAINER_ID
+
+          docker pull $SAMPLE_IMAGE:latest
+
+          docker run
+          --detach
+          --publish 8000:8000
+          --env CLIENT_ID
+          --env CLIENT_SECRET
+          $SAMPLE_IMAGE:latest
+
+          docker run
+          --network="host"
+          --env CLIENT_ID
+          --env CLIENT_SECRET
+          $INT_TESTS_IMAGE_LATEST
+
+  run-integration-tests-with-proxy:
+    needs: build-docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run integration tests through proxy
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+
+        run: >
+          docker login -u $USER -p $AUTH_TOKEN $DOCKER_REGISTRY
+
+          docker run
+          --detach
+          --publish 8080:8080
+          $PROXY_IMAGE_LATEST
+
+          docker run
+          --detach
+          --env CLIENT_ID
+          --env CLIENT_SECRET
+          --env PROXY_HOST=127.0.0.1
+          --env PROXY_PORT=8080
+          --network host
+          $SAMPLE_IMAGE:latest
+
+          docker run
+          --network="host"
+          --env CLIENT_ID
+          --env CLIENT_SECRET
+          $INT_TESTS_IMAGE_LATEST
